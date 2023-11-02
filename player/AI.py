@@ -52,7 +52,21 @@ class AI:
             array=movex.movesifcheckedw(gametiles)
             if len(array)==0:
                 return True
+        if movex.checkb(gametiles)[0]=='checked' :
+            array=movex.movesifcheckedb(gametiles)
+            if len(array)==0:
+                return True
 
+    def checkmatew(self,gametiles):
+        movex=move()
+        if movex.checkw(gametiles)[0]=='checked':
+            array=movex.movesifcheckedw(gametiles)
+            if len(array)==0:
+                return True
+
+    
+    def checkmateb(self,gametiles):
+        movex = move()
         if movex.checkb(gametiles)[0]=='checked' :
             array=movex.movesifcheckedb(gametiles)
             if len(array)==0:
@@ -289,9 +303,12 @@ class AI:
                         if distance <= 2:
                             enemy_proximity += 1
 
-            # threats = movex.movesifcheckedb(gametiles)
-            # if threats:
-            #     king_safety_value -= 1
+            # if movex.checkb(gametiles)[0]=='checked':
+            #     if movex.movesifcheckedb(gametiles):
+            #         king_safety_value -= 10000
+            # if movex.checkw(gametiles)[0]=='checked':
+            #     if movex.movesifcheckedw(gametiles):
+            #         king_safety_value += 10000
 
             king_safety_value = (safe_squares_around_king - enemy_proximity) + king_safety_value
          
@@ -307,24 +324,31 @@ class AI:
             for y in range(8):
                 piece = gametiles[y][x].pieceonTile
                 if piece.tostring() == 'P':
+                    # Evaluate White pawn structure
                     if x > 0 and gametiles[y][x - 1].pieceonTile.tostring() == 'P':
                         pawn_chains += 1
-                    if x == 0 or (x > 0 and gametiles[y][x - 1].pieceonTile.tostring() != 'P'):
+                    if (x == 0 or (x > 0 and gametiles[y][x - 1].pieceonTile.tostring() != 'P')) and \
+                            (x < 7 and gametiles[y][x + 1].pieceonTile.tostring() != 'P'):
                         pawn_islands += 1
-
+                    if (x > 0 and gametiles[y - 1][x - 1].pieceonTile.tostring() == 'P') or \
+                    (x < 7 and gametiles[y - 1][x + 1].pieceonTile.tostring() == 'P'):
+                        pawn_weaknesses += 1
                 elif piece.tostring() == 'p':
+                    # Evaluate Black pawn structure
                     if x > 0 and gametiles[y][x - 1].pieceonTile.tostring() == 'p':
                         pawn_chains -= 1
-                    if x == 0 or (x > 0 and gametiles[y][x - 1].pieceonTile.tostring() != 'p'):
+                    if (x == 0 or (x > 0 and gametiles[y][x - 1].pieceonTile.tostring() != 'p')) and \
+                            (x < 7 and gametiles[y][x + 1].pieceonTile.tostring() != 'p'):
                         pawn_islands -= 1
-        
-        pawn_structure_value = pawn_chains + pawn_islands + pawn_weaknesses
+                    if (x > 0 and gametiles[y + 1][x - 1].pieceonTile.tostring() == 'p') or \
+                    (x < 7 and gametiles[y + 1][x + 1].pieceonTile.tostring() == 'p'):
+                        pawn_weaknesses -= 1
 
+        pawn_structure_value = pawn_chains + pawn_islands + pawn_weaknesses
         return pawn_structure_value
 
 
     def calculateb(self,gametiles): # evaluation function that is being used to evaluate non-terminal states that are encountered in the minimax search tree
-        material_value = 0
         mobility_value = 0
         pawn_structure_value = 0
         king_safety_value = 0
@@ -335,29 +359,29 @@ class AI:
             for y in range(8):
                     piece = gametiles[y][x].pieceonTile
                     if piece.tostring()=='P':
-                        value=value-1
-                    if piece.tostring()=='N':
-                        value=value-3
-                    if piece.tostring()=='B':
-                        value=value-3
-                    if piece.tostring()=='R':
-                        value=value-5
-                    if piece.tostring()=='Q':
-                        value=value-10
-                    if piece.tostring()=='K':
                         value=value-100
+                    if piece.tostring()=='N':
+                        value=value-300
+                    if piece.tostring()=='B':
+                        value=value-300
+                    if piece.tostring()=='R':
+                        value=value-550
+                    if piece.tostring()=='Q':
+                        value=value-1000
+                    if piece.tostring()=='K':
+                        value=value-10000
                     if piece.tostring()=='p':
-                        value=value+1
-                    if piece.tostring()=='n':
-                        value=value+3
-                    if piece.tostring()=='b':
-                        value=value+3
-                    if piece.tostring()=='r':
-                        value=value+5
-                    if piece.tostring()=='q':
-                        value=value+10
-                    if piece.tostring()=='k':
                         value=value+100
+                    if piece.tostring()=='n':
+                        value=value+300
+                    if piece.tostring()=='b':
+                        value=value+300
+                    if piece.tostring()=='r':
+                        value=value+550
+                    if piece.tostring()=='q':
+                        value=value+1000
+                    if piece.tostring()=='k':
+                        value=value+10000
                     
                     # Piece Activity Evaluation
                     if piece.alliance == 'White':
@@ -385,8 +409,22 @@ class AI:
         mobility_value += self.calculate_mobility(gametiles)
         king_safety_value += self.calculate_king_safety(gametiles)
         pawn_structure_value += self.evaluate_pawn_structure(gametiles)
+        try:
+            if move().checkb(gametiles)[0]=='checked':
+                value += 50
+                if len(move().movesifcheckedb(gametiles)) == 0:
+                    value += 100000
+        except:
+            value = value
+        try:
+            if move().checkw(gametiles)[0]=='checked':
+                value -= 50
+                if len(move().movesifcheckedw(gametiles)) == 0:
+                    value -= 100000
+        except: 
+            value = value
 
-        value = value + material_value + mobility_value + king_safety_value + space_advantage_value + piece_activity_value
+        value = value + mobility_value + king_safety_value + space_advantage_value + piece_activity_value + pawn_structure_value
         return value
 
 
