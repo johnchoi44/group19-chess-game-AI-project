@@ -249,47 +249,144 @@ class AI:
             arr.append([y,x,move[0],move[1],mk])
         return arr
 
+    def calculate_mobility(self, gametiles):
+        mobility_value = 0
+        movex = move()
 
-    def calculateb(self,gametiles):
+        for x in range(8):
+            for y in range(8):
+                if gametiles[y][x].pieceonTile.alliance == 'Black':
+                    moves = gametiles[y][x].pieceonTile.legalmoveb(gametiles)
+                    if moves is not None:
+                        mobility_value += len(moves)
+        return mobility_value
+    
+    def calculate_king_safety(self, gametiles):
+        king_safety_value = 0
+        movex = move()
+
+        black_king_x, black_king_y = -1, -1
+
+        for x in range(8):
+            for y in range(8):
+                    if gametiles[y][x].pieceonTile.tostring() == 'k':
+                        black_king_x, black_king_y = x, y
+                        break
+
+        if black_king_x != -1:
+            safe_squares_around_king = 0
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    new_x, new_y = black_king_x + dx, black_king_y + dy
+                    if (0 <= new_x < 8 and 0 <= new_y < 8) and gametiles[new_y][new_x].pieceonTile.alliance != 'White':
+                        safe_squares_around_king += 1
+            
+            enemy_proximity = 0
+            for x in range(8):
+                for y in range(8):
+                    if gametiles[y][x].pieceonTile.alliance == 'White':
+                        distance = max(abs(x - black_king_x), abs(y - black_king_y))
+                        if distance <= 2:
+                            enemy_proximity += 1
+
+            # threats = movex.movesifcheckedb(gametiles)
+            # if threats:
+            #     king_safety_value -= 1
+
+            king_safety_value = (safe_squares_around_king - enemy_proximity) + king_safety_value
+         
+
+        return king_safety_value
+
+    def evaluate_pawn_structure(self, gametiles):
+        pawn_structure_value = 0
+        pawn_chains = 0
+        pawn_islands = 0
+        pawn_weaknesses = 0
+        for x in range(8):
+            for y in range(8):
+                piece = gametiles[y][x].pieceonTile
+                if piece.tostring() == 'P':
+                    if x > 0 and gametiles[y][x - 1].pieceonTile.tostring() == 'P':
+                        pawn_chains += 1
+                    if x == 0 or (x > 0 and gametiles[y][x - 1].pieceonTile.tostring() != 'P'):
+                        pawn_islands += 1
+
+                elif piece.tostring() == 'p':
+                    if x > 0 and gametiles[y][x - 1].pieceonTile.tostring() == 'p':
+                        pawn_chains -= 1
+                    if x == 0 or (x > 0 and gametiles[y][x - 1].pieceonTile.tostring() != 'p'):
+                        pawn_islands -= 1
+        
+        pawn_structure_value = pawn_chains + pawn_islands + pawn_weaknesses
+
+        return pawn_structure_value
+
+
+    def calculateb(self,gametiles): # evaluation function that is being used to evaluate non-terminal states that are encountered in the minimax search tree
+        material_value = 0
+        mobility_value = 0
+        pawn_structure_value = 0
+        king_safety_value = 0
+        space_advantage_value = 0
+        piece_activity_value = 0
         value=0
         for x in range(8):
             for y in range(8):
-                    if gametiles[y][x].pieceonTile.tostring()=='P':
+                    piece = gametiles[y][x].pieceonTile
+                    if piece.tostring()=='P':
+                        value=value-1
+                    if piece.tostring()=='N':
+                        value=value-3
+                    if piece.tostring()=='B':
+                        value=value-3
+                    if piece.tostring()=='R':
+                        value=value-5
+                    if piece.tostring()=='Q':
+                        value=value-10
+                    if piece.tostring()=='K':
                         value=value-100
-
-                    if gametiles[y][x].pieceonTile.tostring()=='N':
-                        value=value-350
-
-                    if gametiles[y][x].pieceonTile.tostring()=='B':
-                        value=value-350
-
-                    if gametiles[y][x].pieceonTile.tostring()=='R':
-                        value=value-525
-
-                    if gametiles[y][x].pieceonTile.tostring()=='Q':
-                        value=value-1000
-
-                    if gametiles[y][x].pieceonTile.tostring()=='K':
-                        value=value-10000
-
-                    if gametiles[y][x].pieceonTile.tostring()=='p':
+                    if piece.tostring()=='p':
+                        value=value+1
+                    if piece.tostring()=='n':
+                        value=value+3
+                    if piece.tostring()=='b':
+                        value=value+3
+                    if piece.tostring()=='r':
+                        value=value+5
+                    if piece.tostring()=='q':
+                        value=value+10
+                    if piece.tostring()=='k':
                         value=value+100
+                    
+                    # Piece Activity Evaluation
+                    if piece.alliance == 'White':
+                        # Add activity evaluation for White pieces here
+                        if piece.tostring() == 'N':
+                            piece_activity_value += 0.1  # Adjust these values as needed
+                        elif piece.tostring() == 'B':
+                            piece_activity_value += 0.2
+                    elif piece.alliance == 'Black':
+                        # Add activity evaluation for Black pieces here
+                        if piece.tostring() == 'n':
+                            piece_activity_value -= 0.1
+                        elif piece.tostring() == 'b':
+                            piece_activity_value -= 0.2
 
-                    if gametiles[y][x].pieceonTile.tostring()=='n':
-                        value=value+350
+                    # Add space advantage evaluation here
+                    if piece.alliance == 'White':
+                        # Evaluate space advantage for White here
+                        if x >= 3 and x <= 4 and y >= 3 and y <= 4:
+                            space_advantage_value += 0.1
+                    elif piece.alliance == 'Black':
+                        # Evaluate space advantage for Black here
+                        if x >= 3 and x <= 4 and y >= 3 and y <= 4:
+                            space_advantage_value -= 0.1
+        mobility_value += self.calculate_mobility(gametiles)
+        king_safety_value += self.calculate_king_safety(gametiles)
+        pawn_structure_value += self.evaluate_pawn_structure(gametiles)
 
-                    if gametiles[y][x].pieceonTile.tostring()=='b':
-                        value=value+350
-
-                    if gametiles[y][x].pieceonTile.tostring()=='r':
-                        value=value+525
-
-                    if gametiles[y][x].pieceonTile.tostring()=='q':
-                        value=value+1000
-
-                    if gametiles[y][x].pieceonTile.tostring()=='k':
-                        value=value+10000
-
+        value = value + material_value + mobility_value + king_safety_value + space_advantage_value + piece_activity_value
         return value
 
 
