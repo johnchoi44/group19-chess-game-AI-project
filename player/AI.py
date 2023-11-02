@@ -263,10 +263,10 @@ class AI:
             arr.append([y,x,move[0],move[1],mk])
         return arr
 
+    # a function that calculate the mobility for each chess piece
     def calculate_mobility(self, gametiles):
         mobility_value = 0
         movex = move()
-
         for x in range(8):
             for y in range(8):
                 if gametiles[y][x].pieceonTile.alliance == 'Black':
@@ -274,86 +274,73 @@ class AI:
                     if moves is not None:
                         mobility_value += len(moves)
         return mobility_value
-    
-    def calculate_king_safety(self, gametiles):
-        king_safety_value = 0
-        movex = move()
 
-        black_king_x, black_king_y = -1, -1
-
-        for x in range(8):
-            for y in range(8):
-                    if gametiles[y][x].pieceonTile.tostring() == 'k':
-                        black_king_x, black_king_y = x, y
-                        break
-
-        if black_king_x != -1:
-            safe_squares_around_king = 0
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    new_x, new_y = black_king_x + dx, black_king_y + dy
-                    if (0 <= new_x < 8 and 0 <= new_y < 8) and gametiles[new_y][new_x].pieceonTile.alliance != 'White':
-                        safe_squares_around_king += 1
-            
-            enemy_proximity = 0
-            for x in range(8):
-                for y in range(8):
-                    if gametiles[y][x].pieceonTile.alliance == 'White':
-                        distance = max(abs(x - black_king_x), abs(y - black_king_y))
-                        if distance <= 2:
-                            enemy_proximity += 1
-
-            # if movex.checkb(gametiles)[0]=='checked':
-            #     if movex.movesifcheckedb(gametiles):
-            #         king_safety_value -= 10000
-            # if movex.checkw(gametiles)[0]=='checked':
-            #     if movex.movesifcheckedw(gametiles):
-            #         king_safety_value += 10000
-
-            king_safety_value = (safe_squares_around_king - enemy_proximity) + king_safety_value
-         
-
-        return king_safety_value
-
+    # function that evaluate pawn structure
     def evaluate_pawn_structure(self, gametiles):
-        pawn_structure_value = 0
         pawn_chains = 0
         pawn_islands = 0
-        pawn_weaknesses = 0
         for x in range(8):
             for y in range(8):
                 piece = gametiles[y][x].pieceonTile
                 if piece.tostring() == 'P':
-                    # Evaluate White pawn structure
-                    if x > 0 and gametiles[y][x - 1].pieceonTile.tostring() == 'P':
-                        pawn_chains += 1
-                    if (x == 0 or (x > 0 and gametiles[y][x - 1].pieceonTile.tostring() != 'P')) and \
-                            (x < 7 and gametiles[y][x + 1].pieceonTile.tostring() != 'P'):
-                        pawn_islands += 1
-                    if (x > 0 and gametiles[y - 1][x - 1].pieceonTile.tostring() == 'P') or \
-                    (x < 7 and gametiles[y - 1][x + 1].pieceonTile.tostring() == 'P'):
-                        pawn_weaknesses += 1
-                elif piece.tostring() == 'p':
-                    # Evaluate Black pawn structure
-                    if x > 0 and gametiles[y][x - 1].pieceonTile.tostring() == 'p':
-                        pawn_chains -= 1
-                    if (x == 0 or (x > 0 and gametiles[y][x - 1].pieceonTile.tostring() != 'p')) and \
-                            (x < 7 and gametiles[y][x + 1].pieceonTile.tostring() != 'p'):
-                        pawn_islands -= 1
-                    if (x > 0 and gametiles[y + 1][x - 1].pieceonTile.tostring() == 'p') or \
-                    (x < 7 and gametiles[y + 1][x + 1].pieceonTile.tostring() == 'p'):
-                        pawn_weaknesses -= 1
-
-        pawn_structure_value = pawn_chains + pawn_islands + pawn_weaknesses
+                    try:
+                        # Evaluate Black pawn chain structure with two or more diagonally linked pawns
+                        if gametiles[y - 1][x - 1].pieceonTile.tostring() == 'P':
+                            pawn_chains += 1
+                        if gametiles[y + 1][x + 1].pieceonTile.tostring() == 'P':
+                            pawn_chains += 1
+                        if gametiles[y + 1][x - 1].pieceonTile.tostring() == 'P':
+                            pawn_chains += 1
+                        if gametiles[y - 1][x + 1].pieceonTile.tostring() == 'P':
+                            pawn_chains += 1
+                        # Evaluate Black pawn islands structure, where pawns are separated by one or more columns
+                        # this is considered to be a weaknesses, the player with more pawn islands has the weaker structure
+                        lcol1 = gametiles[y][x - 1].pieceonTile.tostring()
+                        lcol2 = gametiles[y + 1][x - 1].pieceonTile.tostring()
+                        lcol3 = gametiles[y + 2][x - 1].pieceonTile.tostring()
+                        rcol1 = gametiles[y][x + 1].pieceonTile.tostring()
+                        rcol2 = gametiles[y + 1][x + 1].pieceonTile.tostring()
+                        rcol3 = gametiles[y + 2][x + 1].pieceonTile.tostring()
+                        if lcol1 != 'P' and lcol2 != 'P' and lcol3 != 'P':
+                            pawn_islands -= 0.1
+                        if rcol1 != 'P' and rcol2 != 'P' and rcol3 != 'P':
+                            pawn_islands -= 0.1
+                    except IndexError:
+                        pass
+                ### did not include a evaluation of the White pawn as it might lead to a non-optimal move considering the White pawn.
+                # elif piece.tostring() == 'p':
+                #     try:
+                #         # Evaluate White pawn chain structure with two or more diagonally linked pawns
+                #         if gametiles[y - 1][x - 1].pieceonTile.tostring() == 'p':
+                #             pawn_chains += 0.5
+                #         if gametiles[y + 1][x + 1].pieceonTile.tostring() == 'p':
+                #             pawn_chains += 0.5
+                #         if gametiles[y + 1][x - 1].pieceonTile.tostring() == 'p':
+                #             pawn_chains += 0.5
+                #         if gametiles[y - 1][x + 1].pieceonTile.tostring() == 'p':
+                #             pawn_chains += 0.5
+                #         # Evaluate Black pawn islands structure, where pawns are separated by one or more columns
+                #         # this is considered to be a weaknesses, the player with more pawn islands has the weaker structure
+                #         lcolm = gametiles[y][x - 1].pieceonTile.tostring()
+                #         lcolu = gametiles[y - 1][x - 1].pieceonTile.tostring()
+                #         lcold = gametiles[y + 1][x - 1].pieceonTile.tostring()
+                #         rcolm = gametiles[y][x + 1].pieceonTile.tostring()
+                #         rcolu = gametiles[y - 1][x + 1].pieceonTile.tostring()
+                #         rcold = gametiles[y + 1][x + 1].pieceonTile.tostring()
+                #         if lcolm != 'p' and lcolu != 'p' and lcold != 'p':
+                #             pawn_islands += 0.1
+                #         if rcolm != 'p' and rcolu != 'p' and rcold != 'p':
+                #             pawn_islands += 0.1
+                #     except IndexError:
+                #         pass
+        pawn_structure_value = pawn_chains + pawn_islands
         return pawn_structure_value
 
-
-    def calculateb(self,gametiles): # evaluation function that is being used to evaluate non-terminal states that are encountered in the minimax search tree
+    # evaluation function that is being used to evaluate non-terminal states that are encountered in the minimax search tree
+    def calculateb(self,gametiles):
         mobility_value = 0
         pawn_structure_value = 0
-        king_safety_value = 0
         space_advantage_value = 0
-        piece_activity_value = 0
         value=0
         for x in range(8):
             for y in range(8):
@@ -382,51 +369,47 @@ class AI:
                         value=value+1000
                     if piece.tostring()=='k':
                         value=value+10000
-                    
-                    # Piece Activity Evaluation
-                    if piece.alliance == 'White':
-                        # Add activity evaluation for White pieces here
-                        if piece.tostring() == 'N':
-                            piece_activity_value += 0.1  # Adjust these values as needed
-                        elif piece.tostring() == 'B':
-                            piece_activity_value += 0.2
-                    elif piece.alliance == 'Black':
-                        # Add activity evaluation for Black pieces here
-                        if piece.tostring() == 'n':
-                            piece_activity_value -= 0.1
-                        elif piece.tostring() == 'b':
-                            piece_activity_value -= 0.2
 
-                    # Add space advantage evaluation here
-                    if piece.alliance == 'White':
-                        # Evaluate space advantage for White here
+                    # space advantage - someone who controls the 4 key central squares,
+                    # or has better control of the 16 central squares.
+                    if piece.alliance == 'Black':
+                        # Evaluate space advantage for black add 50 point for 4 key central squares
+                        # and 1 point for 16 central squares
                         if x >= 3 and x <= 4 and y >= 3 and y <= 4:
-                            space_advantage_value += 0.1
-                    elif piece.alliance == 'Black':
-                        # Evaluate space advantage for Black here
-                        if x >= 3 and x <= 4 and y >= 3 and y <= 4:
-                            space_advantage_value -= 0.1
+                            space_advantage_value += 50
+                        elif x >= 2 and x <= 5 and y >= 2 and y <= 5:
+                            space_advantage_value += 1
+                    ### not using evaluation of white piece as the model might overthink to a non-optimal move
+                    # elif piece.alliance == 'White':
+                    #     # Evaluate space advantage for white 
+                    #     if x >= 3 and x <= 4 and y >= 3 and y <= 4:
+                    #         space_advantage_value -= 30
+                    #     elif x >= 2 and x <= 5 and y >= 2 and y <= 5:
+                    #         space_advantage_value -= 5
+
+        # calculate the value of mobility and pawn_structure 
         mobility_value += self.calculate_mobility(gametiles)
-        king_safety_value += self.calculate_king_safety(gametiles)
+        # king_safety_value += self.calculate_king_safety(gametiles)
         pawn_structure_value += self.evaluate_pawn_structure(gametiles)
+        # add value according to check and checkmate
+        # add and subtract 100 if the king is checked, subtract or add high value to avoid and try to make checkmate
         try:
             if move().checkb(gametiles)[0]=='checked':
-                value += 50
+                value += 100
                 if len(move().movesifcheckedb(gametiles)) == 0:
                     value += 100000
         except:
             value = value
         try:
             if move().checkw(gametiles)[0]=='checked':
-                value -= 50
+                value -= 100
                 if len(move().movesifcheckedw(gametiles)) == 0:
                     value -= 100000
         except: 
             value = value
-
-        value = value + mobility_value + king_safety_value + space_advantage_value + piece_activity_value + pawn_structure_value
+        # add all the evaluation value caluated with appropriate weights
+        value = value + 0.5 * mobility_value + space_advantage_value + pawn_structure_value
         return value
-
 
     def move(self,gametiles,y,x,n,m):
         promotion=False
@@ -583,28 +566,3 @@ class AI:
                 promotion=False
 
         return gametiles
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        
