@@ -71,8 +71,9 @@ class move:
                 if(gametiles[m][k].pieceonTile.alliance=='Black'):
                     moves=gametiles[m][k].pieceonTile.legalmoveb(gametiles)
                     if moves==None:
-                        print(m)
-                        print(k)
+                        # print(m)
+                        # print(k)
+                        a = 1
                     for move in moves:
                         if(move[0]==x and move[1]==y):
                             return["checked",[m,k]]

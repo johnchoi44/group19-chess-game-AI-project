@@ -286,13 +286,13 @@ class AI:
                     try:
                         # Evaluate Black pawn chain structure with two or more diagonally linked pawns
                         if gametiles[y - 1][x - 1].pieceonTile.tostring() == 'P':
-                            pawn_chains += 1
+                            pawn_chains -= 1
                         if gametiles[y + 1][x + 1].pieceonTile.tostring() == 'P':
-                            pawn_chains += 1
+                            pawn_chains -= 1
                         if gametiles[y + 1][x - 1].pieceonTile.tostring() == 'P':
-                            pawn_chains += 1
+                            pawn_chains -= 1
                         if gametiles[y - 1][x + 1].pieceonTile.tostring() == 'P':
-                            pawn_chains += 1
+                            pawn_chains -= 1
                         # Evaluate Black pawn islands structure, where pawns are separated by one or more columns
                         # this is considered to be a weaknesses, the player with more pawn islands has the weaker structure
                         lcol1 = gametiles[y][x - 1].pieceonTile.tostring()
@@ -302,9 +302,9 @@ class AI:
                         rcol2 = gametiles[y + 1][x + 1].pieceonTile.tostring()
                         rcol3 = gametiles[y + 2][x + 1].pieceonTile.tostring()
                         if lcol1 != 'P' and lcol2 != 'P' and lcol3 != 'P':
-                            pawn_islands -= 0.1
+                            pawn_islands += 0.1
                         if rcol1 != 'P' and rcol2 != 'P' and rcol3 != 'P':
-                            pawn_islands -= 0.1
+                            pawn_islands += 0.1
                     except IndexError:
                         pass
                 ### did not include a evaluation of the White pawn as it might lead to a non-optimal move considering the White pawn.
@@ -375,10 +375,11 @@ class AI:
                     if piece.alliance == 'Black':
                         # Evaluate space advantage for black add 50 point for 4 key central squares
                         # and 1 point for 16 central squares
-                        if x >= 3 and x <= 4 and y >= 3 and y <= 4:
-                            space_advantage_value += 50
-                        elif x >= 2 and x <= 5 and y >= 2 and y <= 5:
-                            space_advantage_value += 1
+                        if (3 <= x <= 4) and (3 <= y <= 4):
+                            print(piece.tostring())
+                            space_advantage_value -= 100
+                        elif (2 <= x <= 5) and (2 <= y <= 5):
+                            space_advantage_value -= 10
                     ### not using evaluation of white piece as the model might overthink to a non-optimal move
                     # elif piece.alliance == 'White':
                     #     # Evaluate space advantage for white 
@@ -395,16 +396,16 @@ class AI:
         # add and subtract 100 if the king is checked, subtract or add high value to avoid and try to make checkmate
         try:
             if move().checkb(gametiles)[0]=='checked':
-                value += 100
+                value -= 100
                 if len(move().movesifcheckedb(gametiles)) == 0:
-                    value += 100000
+                    value -= 100000
         except:
             value = value
         try:
             if move().checkw(gametiles)[0]=='checked':
-                value -= 100
+                value += 100
                 if len(move().movesifcheckedw(gametiles)) == 0:
-                    value -= 100000
+                    value += 100000
         except: 
             value = value
         # add all the evaluation value caluated with appropriate weights
