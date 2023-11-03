@@ -272,17 +272,31 @@ class AI:
                 if gametiles[y][x].pieceonTile.alliance == 'Black':
                     moves = gametiles[y][x].pieceonTile.legalmoveb(gametiles)
                     if moves is not None:
-                        mobility_value += len(moves)
+                        mobility_value -= len(moves)
         return mobility_value
 
-    # function that evaluate pawn structure
+    # created a new function that evaluate pawn structure
     def evaluate_pawn_structure(self, gametiles):
+        pawn_structure_value = 0
         pawn_chains = 0
         pawn_islands = 0
         for x in range(8):
             for y in range(8):
                 piece = gametiles[y][x].pieceonTile
                 if piece.tostring() == 'P':
+                    # if the Black pawn goes to the White side, we have advantage
+                    if y >= 3:
+                        pawn_structure_value -= 10
+                    if y >= 5:
+                        pawn_structure_value -= 25
+                    if y >= 6:
+                        pawn_structure_value -= 50
+                    # Evaluate space advantage for black add 20 point for 4 key central squares
+                    # and 5 point for 16 central squares
+                    if (3 <= x <= 4) and (3 <= y <= 4):
+                        pawn_structure_value -= 20
+                    elif (2 <= x <= 5) and (2 <= y <= 5):
+                        pawn_structure_value -= 5
                     try:
                         # Evaluate Black pawn chain structure with two or more diagonally linked pawns
                         if gametiles[y - 1][x - 1].pieceonTile.tostring() == 'P':
@@ -307,18 +321,23 @@ class AI:
                             pawn_islands += 0.1
                     except IndexError:
                         pass
-                ### did not include a evaluation of the White pawn as it might lead to a non-optimal move considering the White pawn.
+                # ## did not include a evaluation of the White pawn as it might lead to a non-optimal move considering the White pawn.
                 # elif piece.tostring() == 'p':
+                #     # Evaluate space advantage for white 
+                #     if x >= 3 and x <= 4 and y >= 3 and y <= 4:
+                #         pawn_structure_value += 20
+                #     elif x >= 2 and x <= 5 and y >= 2 and y <= 5:
+                #         pawn_structure_value += 5
                 #     try:
                 #         # Evaluate White pawn chain structure with two or more diagonally linked pawns
                 #         if gametiles[y - 1][x - 1].pieceonTile.tostring() == 'p':
-                #             pawn_chains += 0.5
+                #             pawn_chains += 2
                 #         if gametiles[y + 1][x + 1].pieceonTile.tostring() == 'p':
-                #             pawn_chains += 0.5
+                #             pawn_chains += 2
                 #         if gametiles[y + 1][x - 1].pieceonTile.tostring() == 'p':
-                #             pawn_chains += 0.5
+                #             pawn_chains += 2
                 #         if gametiles[y - 1][x + 1].pieceonTile.tostring() == 'p':
-                #             pawn_chains += 0.5
+                #             pawn_chains += 2
                 #         # Evaluate Black pawn islands structure, where pawns are separated by one or more columns
                 #         # this is considered to be a weaknesses, the player with more pawn islands has the weaker structure
                 #         lcolm = gametiles[y][x - 1].pieceonTile.tostring()
@@ -328,13 +347,14 @@ class AI:
                 #         rcolu = gametiles[y - 1][x + 1].pieceonTile.tostring()
                 #         rcold = gametiles[y + 1][x + 1].pieceonTile.tostring()
                 #         if lcolm != 'p' and lcolu != 'p' and lcold != 'p':
-                #             pawn_islands += 0.1
+                #             pawn_islands += 1
                 #         if rcolm != 'p' and rcolu != 'p' and rcold != 'p':
-                #             pawn_islands += 0.1
+                #             pawn_islands += 1
                 #     except IndexError:
                 #         pass
-        pawn_structure_value = pawn_chains + pawn_islands
+        pawn_structure_value = pawn_structure_value + pawn_chains + pawn_islands
         return pawn_structure_value
+
 
     # evaluation function that is being used to evaluate non-terminal states that are encountered in the minimax search tree
     def calculateb(self,gametiles):
@@ -352,11 +372,11 @@ class AI:
                     if piece.tostring()=='B':
                         value=value-300
                     if piece.tostring()=='R':
-                        value=value-550
+                        value=value-525
                     if piece.tostring()=='Q':
-                        value=value-1000
-                    if piece.tostring()=='K':
                         value=value-10000
+                    if piece.tostring()=='K':
+                        value=value-100000
                     if piece.tostring()=='p':
                         value=value+100
                     if piece.tostring()=='n':
@@ -364,48 +384,46 @@ class AI:
                     if piece.tostring()=='b':
                         value=value+300
                     if piece.tostring()=='r':
-                        value=value+550
+                        value=value+525
                     if piece.tostring()=='q':
-                        value=value+1000
-                    if piece.tostring()=='k':
                         value=value+10000
+                    if piece.tostring()=='k':
+                        value=value+100000
 
                     # space advantage - someone who controls the 4 key central squares,
                     # or has better control of the 16 central squares.
-                    if piece.alliance == 'Black':
-                        # Evaluate space advantage for black add 50 point for 4 key central squares
-                        # and 1 point for 16 central squares
-                        if (3 <= x <= 4) and (3 <= y <= 4):
-                            print(piece.tostring())
-                            space_advantage_value -= 100
-                        elif (2 <= x <= 5) and (2 <= y <= 5):
-                            space_advantage_value -= 10
-                    ### not using evaluation of white piece as the model might overthink to a non-optimal move
+                    # if piece.alliance == 'Black':
+                    #     # Evaluate space advantage for black add 50 point for 4 key central squares
+                    #     # and 1 point for 16 central squares
+                    #     if (3 <= x <= 4) and (3 <= y <= 4):
+                    #         value -= 20
+                    #     elif (2 <= x <= 5) and (2 <= y <= 5):
+                    #         value -= 5
+                    # ### not using evaluation of white piece as the model might overthink to a non-optimal move
                     # elif piece.alliance == 'White':
                     #     # Evaluate space advantage for white 
                     #     if x >= 3 and x <= 4 and y >= 3 and y <= 4:
-                    #         space_advantage_value -= 30
+                    #         value += 20
                     #     elif x >= 2 and x <= 5 and y >= 2 and y <= 5:
-                    #         space_advantage_value -= 5
+                    #         value += 5
 
         # calculate the value of mobility and pawn_structure 
         mobility_value += self.calculate_mobility(gametiles)
-        # king_safety_value += self.calculate_king_safety(gametiles)
         pawn_structure_value += self.evaluate_pawn_structure(gametiles)
-        # add value according to check and checkmate
-        # add and subtract 100 if the king is checked, subtract or add high value to avoid and try to make checkmate
+        # add value according to checkmate
+        # subtract or add high value to avoid and try to make checkmate
         try:
             if move().checkb(gametiles)[0]=='checked':
-                value -= 100
+                # value += 10
                 if len(move().movesifcheckedb(gametiles)) == 0:
-                    value -= 100000
+                    value += 1000000
         except:
             value = value
         try:
             if move().checkw(gametiles)[0]=='checked':
-                value += 100
+                # value -= 10
                 if len(move().movesifcheckedw(gametiles)) == 0:
-                    value += 100000
+                    value -= 1000000
         except: 
             value = value
         # add all the evaluation value caluated with appropriate weights
